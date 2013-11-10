@@ -55,11 +55,7 @@ public class Main {
 //    	String command = "EXPLAIN ANALYZE SELECT Employee.ssnum FROM Employee WHERE Employee.name = 'name1' OR Employee.dept = 'dept899'";
 //    	String command = "EXPLAIN ANALYZE SELECT Employee.ssnum FROM Employee WHERE Employee.name = 'name1' UNION SELECT Employee.ssnum FROM Employee WHERE Employee.dept = 'dept899'";
     	
-
-    	long start = System.nanoTime();
     	ResultSet rs = con.createStatement().executeQuery(command);
-    	long finish = System.nanoTime();
-    	System.out.println("Query took " + ((finish - start) / Math.pow(10, 9)) + " seconds.");
        
         System.out.println("Result:");
         while (rs.next()) {
