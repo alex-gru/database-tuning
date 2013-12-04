@@ -1,3 +1,5 @@
+package dbt02;
+
 import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
 
