@@ -18,7 +18,7 @@ public class DBFiller {
         BaseConnection baseCon = (BaseConnection) conn;
         CopyManager manager = new CopyManager(baseCon);
         for (int i = 0; i < files.length; i++) {
-            manager.copyIn("COPY publ from STDIN", new FileInputStream(files[i]));
+            manager.copyIn("COPY publnew from STDIN", new FileInputStream(files[i]));
             System.out.println("SUCCESSFULLY COPIED " + Main.NUMBERLINESSPLIT + " ENTRIES");
         }
 
