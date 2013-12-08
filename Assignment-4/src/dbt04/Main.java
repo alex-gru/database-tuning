@@ -31,20 +31,22 @@ public class Main {
 //        loadConditionsPseudoRandomlyIntoFile(connection, "booktitle");
 //        loadConditionsPseudoRandomlyIntoFile(connection, "pubid");
 //        loadConditionsPseudoRandomlyIntoFile(connection, "year");
-        testQueryPerformance(connection, 50, "year", "title", "btree", true);
-        testQueryPerformance(connection, 50, "year", "title", "btree", false);
-        testQueryPerformance(connection, 50, "year", "title", "hash", false);
-        testQueryPerformance(connection, 50, "year", "title", null, false);
 
-        testQueryPerformance(connection, 200, "booktitle", "year", "btree", true);
-        testQueryPerformance(connection, 200, "booktitle", "year", "btree", false);
-        testQueryPerformance(connection, 200, "booktitle", "year", "hash", false);
-        testQueryPerformance(connection, 200, "booktitle", "year", null, false);
 
-        testQueryPerformance(connection, 300, "pubid", "type", "btree", true);
-        testQueryPerformance(connection, 300, "pubid", "type", "btree", false);
-        testQueryPerformance(connection, 300, "pubid", "type", "hash", false);
-        testQueryPerformance(connection, 300, "pubid", "type", null, false);
+//        testQueryPerformance(connection, 50, "year", "title", "btree", true);
+//        testQueryPerformance(connection, 50, "year", "title", "btree", false);
+//        testQueryPerformance(connection, 50, "year", "title", "hash", false);
+//        testQueryPerformance(connection, 50, "year", "title", null, false);
+//
+//        testQueryPerformance(connection, 200, "booktitle", "year", "btree", true);
+//        testQueryPerformance(connection, 200, "booktitle", "year", "btree", false);
+//        testQueryPerformance(connection, 200, "booktitle", "year", "hash", false);
+//        testQueryPerformance(connection, 200, "booktitle", "year", null, false);
+
+//        testQueryPerformance(connection, 2000, "pubid", "type", "btree", true);
+//        testQueryPerformance(connection, 2000, "pubid", "type", "btree", false);
+//        testQueryPerformance(connection, 2000, "pubid", "type", "hash", false);
+//        testQueryPerformance(connection, 300, "pubid", "type", null, false);
     }
 
     private static void loadConditionsPseudoRandomlyIntoFile(Connection conn, String attribute) throws IOException, SQLException {
@@ -96,7 +98,7 @@ public class Main {
         }
         in.close();
 
-//        conn.createStatement().execute("DROP INDEX IF EXISTS " + attribute + "_idx");
+        dropIndexes(conn);
         String index = null;
         if (dataStructure != null) {
             index = "CREATE INDEX " + attribute + "_idx " + "ON publnew USING " + dataStructure + "(" +
@@ -105,7 +107,7 @@ public class Main {
 
         String cluster = null;
         if (clustered) {
-            cluster = "CLUSTER publ USING " + attribute + "_idx";
+            cluster = "CLUSTER publnew USING " + attribute + "_idx";
         } else if (dataStructure != null) {
             try {
                 conn.createStatement().execute("CREATE INDEX " + independentAttribute + "_idx ON publnew ("
@@ -113,7 +115,7 @@ public class Main {
             } catch (PSQLException e) {
                 System.out.println("index " + independentAttribute + "_idx already exists. move on...");
             }
-            cluster = "CLUSTER publ USING " + independentAttribute + "_idx";
+            cluster = "CLUSTER publnew USING " + independentAttribute + "_idx";
         }
         if (index != null) {
             log.append("\nINDEX-statement: " + index);
@@ -128,12 +130,25 @@ public class Main {
             conn.createStatement().execute(cluster);
         }
 
+        // ANALYZE TABLE ////////////
+        conn.createStatement().execute("ANALYZE publnew");
+        /////////////////////////////
         long start = System.nanoTime();
-
         for (int i = 0; i < conds.length; i++) {
-            String query = "SELECT * FROM publnew WHERE " + attribute + "='" + conds[i] + "'";
-            log.append("\n" + query);
-            conn.createStatement().executeQuery(query);
+            if (i == 0) {
+                String query = "EXPLAIN ANALYZE SELECT * FROM publnew WHERE " + attribute + "='" + conds[i] + "'";
+                log.append("\n" + query);
+                ResultSet resultSet = conn.createStatement().executeQuery(query);
+                log.append("\n\tQUERY PLAN:");
+                while (resultSet.next()) {
+                    log.append("\n\t" + resultSet.getString(1));
+                }
+                log.append("\n\tEND OF QUERY PLAN");
+            } else {
+                String query = "SELECT * FROM publnew WHERE " + attribute + "='" + conds[i] + "'";
+                conn.createStatement().executeQuery(query);
+                log.append("\n" + query);
+            }
         }
         long finish = System.nanoTime();
         double time = (finish - start) / Math.pow(10, 9);
@@ -144,7 +159,16 @@ public class Main {
         double throughput = numberRunsPerQuery / time;
         log.append("\nTHROUGHPUT: " + throughput + " queries per second");
         log.close();
+
         System.out.println("Performance test results can be found in " + filename);
+    }
+
+    private static void dropIndexes(Connection conn) throws SQLException {
+        conn.createStatement().execute("drop index if exists year_idx;\n" +
+                "drop index if exists pubid_idx;\n" +
+                "drop index if exists booktitle_idx;\n" +
+                "drop index if exists type_idx;\n" +
+                "drop index if exists title_idx;");
     }
 
     private static File[] splitFileIntoMore(String fileName, int maxNumberOfRows) throws IOException {
