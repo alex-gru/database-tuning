@@ -12,7 +12,7 @@ public class InsertData {
     static CopyManager manager;
 	public static void main(String[] args) {
         try {
-            con = DBConnector.getConnection();
+            con = new DBConnector().getConnection();
             baseCon = (BaseConnection) con;
             manager = new CopyManager(baseCon);
             long start = System.nanoTime();
